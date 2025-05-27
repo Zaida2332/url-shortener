@@ -18,14 +18,15 @@ try {
     return res.json({
         shortUrl: `${baseUrl}/${url.code}`,
         code: url.code,
-        longUrl: url.longUrl
+        longUrl: url.longUrl,
+        expiresAt:url.expiresAt
     });
     }
 
     const code = generateShortCode();
     const shortUrl = `${baseUrl}/${code}`;
 
-    url = new Url({ code, longUrl });
+    url = new Url({ code, longUrl,expiresAt:expiresAt ? new Date(expiresAt):null });
     await url.save();
 
     res.json({ shortUrl, code, longUrl });
