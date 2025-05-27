@@ -41,6 +41,8 @@ try {
     const url = await Url.findOne({ code: req.params.code });
 
     if (url) {
+        url.clicks ++;
+        await url.save();
     return res.redirect(url.longUrl);
     } else {
 return res.status(404).json('No URL found');
