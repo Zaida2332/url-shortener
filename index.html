@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>URL Shortener</title>
+<style>
+    body {
+    font-family: Arial, sans-serif;
+    background-color: #f1f2f6;
+    background-image: url("https://images.ctfassets.net/lzny33ho1g45/T5qqQQVznbZaNyxmHybDT/5f7580349045322d572a078262bee1b8/Best_URL_shortener.jpg");
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 100px;
+    }
+
+    h1 {
+    color: #2f3542;
+    }
+
+    input[type="url"] {
+    width: 400px;
+    padding: 12px;
+    font-size: 16px;
+border: 1px solid #ccc;
+    border-radius: 6px;
+    }
+
+    button {
+    padding: 12px 24px;
+    font-size: 16px;
+    background-color: #1e90ff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    margin-left: 10px;
+    cursor: pointer;
+    }
+
+    #result {
+    margin-top: 30px;
+    font-size: 18px;
+    color: #2ed573;
+    }
+
+    #error {
+    margin-top: 20px;
+    color: red;
+    }
+</style>
+</head>
+<body>
+
+<h1>Simple URL Shortener</h1>
+
+<form id="shorten-form">
+    <input type="url" id="longUrl" placeholder="Enter long URL..." required />
+    <button type="submit">Shorten</button></form>
+
+<div id="result"></div>
+<div id="error"></div>
+
+<script>
+    const form = document.getElementById("shorten-form");
+    const resultDiv = document.getElementById("result");
+    const errorDiv = document.getElementById("error");
+
+    form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    resultDiv.textContent = "";
+    errorDiv.textContent = "";
+
+    const longUrl = document.getElementById("longUrl").value;
+
+    try {
+        const res = await fetch("http://localhost:8000/api/shorten", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ longUrl })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+        resultDiv.innerHTML = `Short URL: <a href="${data.shortUrl}" target="_blank">${data.shortUrl}</a>`;
+        } else {
+        errorDiv.textContent = data.error || "An error occurred.";
+        }
+    } catch (err) {
+        errorDiv.textContent = "Server error. Please try again later.";
+    }
+    });
+</script>
+
+</body>
+</html>

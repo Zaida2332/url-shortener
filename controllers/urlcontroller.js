@@ -1,55 +1,74 @@
-const validUrl = require('valid-url');
 const Url = require('../models/Url');
 const generateShortCode = require('../utils/generateShortCode');
+const dotenv = require("dotenv");
+const baseUrl = process.env.BASE_URL;
 
-const baseUrl = 'http://localhost:3000';
+const EXPIRY_DAYS = 7;
 
 exports.shortenUrl = async (req, res) => {
 const { longUrl } = req.body;
-
-if (!validUrl.isUri(longUrl)) {
-    return res.status(400).json({ error: 'Invalid URL' });
-}
+if (!longUrl) return res.status(400).json({ error: 'Long URL is required' });
 
 try {
-    let url = await Url.findOne({ longUrl });
+    const existing = await Url.findOne({ longUrl });
 
-    if (url) {
+    if (existing && (!existing.expiryDate || existing.expiryDate > new Date())) {
+    
     return res.json({
-        shortUrl: `${baseUrl}/${url.code}`,
-        code: url.code,
-        longUrl: url.longUrl,
-        expiresAt:url.expiresAt
+        shortUrl: `${baseUrl}/${existing.code}`,
+        code: existing.code,
+        longUrl: existing.longUrl
     });
     }
 
-    const code = generateShortCode();
-    const shortUrl = `${baseUrl}/${code}`;
 
-    url = new Url({ code, longUrl,expiresAt:expiresAt ? new Date(expiresAt):null });
-    await url.save();
+    let code;
+    let isUnique = false;
 
-    res.json({ shortUrl, code, longUrl });
-} catch (err) {
-    console.error(err);
-    res.status(500).json('Server Error');
-};
+    while (!isUnique) {
+    code = generateShortCode();
+    const exists = await Url.findOne({ code });
+    if (!exists) isUnique = true;
+    }
+
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + EXPIRY_DAYS);
+
+    const newUrl = new Url({
+    code,
+    longUrl,
+    expiryDate
+    });
+
+    await newUrl.save();
+
+    res.json({
+    shortUrl: `${baseUrl}/${code}`,
+    code,
+    longUrl
+    });
+
+} catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
 }
-
+};
 
 exports.redirect = async (req, res) => {
-try {
-    const url = await Url.findOne({ code: req.params.code });
+const code = req.params.code;
 
-    if (url) {
-        url.clicks ++;
-        await url.save();
-    return res.redirect(url.longUrl);
-    } else {
-return res.status(404).json('No URL found');
+try {
+    const url = await Url.findOne({ code });
+
+    if (!url) return res.status(404).json({ error: 'URL not found' });
+
+    
+    if (url.expiryDate && url.expiryDate < new Date()) {
+    return res.status(410).json({ error: 'URL has expired' }); 
     }
-} catch (err) {
-    console.error(err);
-    res.status(500).json('Server Error');
-}
-};
+
+    return res.redirect(302, url.longUrl);
+
+} catch (error) {
+    res.status(500).json({ error: 'Server error' });
+}}
