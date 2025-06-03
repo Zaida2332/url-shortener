@@ -3,6 +3,9 @@ const mongoose =require('mongoose');
 const urlRouter = require('./routes/uri');
 const cors = require("cors"); // 
 const app =express();
+const dotenv = require("dotenv")
+dotenv.config()
+console.log(process.env.BASE_URL)
 
 app.use(express.json());
 app.use(cors()) // 

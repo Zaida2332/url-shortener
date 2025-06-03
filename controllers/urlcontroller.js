@@ -2,7 +2,6 @@
 const validUrl = require('valid-url');
 const Url = require('../models/Url');
 const generateShortCode = require('../utils/generateShortCode');
-const BASE_URL = process.env.BASE_URL;
 
 const generateUniqueCode = async () => {
 let code;
@@ -17,6 +16,8 @@ return code;
 exports.shortenUrl = async (req, res) => {
 const { longUrl } = req.body;
 const expireAfterDays = 30; 
+const BASE_URL = process.env.BASE_URL;
+
 
 if (!validUrl.isUri(longUrl)) return res.status(400).json({ error: 'Invalid URL' });
 
@@ -41,7 +42,7 @@ try {
     const code = await generateUniqueCode();
     const expiryDate = new Date(now.getTime() + expireAfterDays * 24 * 60 * 60 * 1000);
 
-    const newUrl = new Url({ longUrl, code, expiryDate });
+    const newUrl = new Url({ longUrl, code, expiryDate }); 
     await newUrl.save();
 
     res.json({
@@ -64,7 +65,7 @@ try {
 
     const now = new Date();
     if (url.expiryDate && url.expiryDate < now) {
-      return res.status(410).json({ error: 'URL expired' }); // 410 Gone
+    return res.status(410).json({ error: 'URL expired' });  
     }
 
     res.redirect(url.longUrl);
