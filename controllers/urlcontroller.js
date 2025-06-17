@@ -1,4 +1,4 @@
-
+/*
 const validUrl = require('valid-url');
 const Url = require('../models/Url');
 const generateShortCode = require('../utils/generateShortCode');
@@ -73,4 +73,60 @@ try {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
  }
+};*/
+const Url = require('../models/Url');
+const generateShortCode = require('../utils/generateShortCode');
+const redisClient = require('../utils/redisClient');
+
+exports.shortenUrl = async (req, res) => {
+const { longUrl, expiryDays = 7 } = req.body;
+
+if (!longUrl) return res.status(400).json({ error: 'URL is required' });
+
+const code = generateShortCode();
+const expiryDate = new Date();
+expiryDate.setDate(expiryDate.getDate() + expiryDays);
+
+
+const existing = await Url.findOne({ longUrl });
+
+if (existing && (!existing.expiryDate || existing.expiryDate > new Date())) {
+    await redisClient.set(code, longUrl);
+    return res.json({
+    shortUrl:` http://localhost:8000/${existing.code}`,
+    code: existing.code,
+    longUrl: existing.longUrl
+    });
+}
+
+const url = await Url.create({ code, longUrl, expiryDate });
+
+await redisClient.set(code, longUrl);
+
+res.json({
+    shortUrl:` http://localhost:8000/${code}`,
+    code,
+    longUrl
+});
+};
+
+
+exports.redirectUrl = async (req, res) => {
+const { code } = req.params;
+
+const cached = await redisClient.get(code);
+if (cached) return res.redirect(cached);
+
+
+const url = await Url.findOne({ code });
+
+if (!url) return res.status(404).json({ error: 'URL not found' });
+
+if (url.expiryDate && url.expiryDate < new Date()) {
+    return res.status(410).json({ error: 'URL expired' });
+}
+
+await redisClient.set(code, url.longUrl);
+
+res.redirect(url.longUrl);
 };
